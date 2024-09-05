@@ -2,16 +2,16 @@
 
 const mongoose = require("mongoose");
 
-const connectString =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://ggnohope:Ys93gw0QvdFs2qTo@cluster0.w0okv.mongodb.net/sample_mflix";
+const connectString = process.env.MONGODB_URI;
 
 class Database {
+  static instance: Database;
+
   constructor() {
     this.connect();
   }
 
-  connect(type = "mongodb") {
+  connect() {
     mongoose.set("debug", true);
     mongoose.set("debug", { color: true });
 
@@ -20,8 +20,8 @@ class Database {
       .then(() => {
         console.log("Connected to MongoDB");
       })
-      .catch((err) => {
-        console.log("Error connecting to MongoDB", err);
+      .catch((error: Error) => {
+        console.log("Error connecting to MongoDB", error);
       });
   }
 

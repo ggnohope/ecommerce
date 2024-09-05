@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES6" /* Mục tiêu biên dịch thành ECMAScript 6 */,
+    "module": "ES6" /* Sử dụng module system của Node.js */,
+    "outDir": "./dist" /* Nơi lưu file biên dịch (JS) */,
+    "rootDir": "." /* Thư mục chứa file TypeScript (TS) */,
+    "strict": true /* Bật kiểm tra nghiêm ngặt */,
+    "esModuleInterop": true /* Hỗ trợ ES module imports */,
+    "moduleResolution": "node"
+  },
+  "exclude": ["node_modules"] /* Loại bỏ thư mục không cần biên dịch */,
+  "include": ["./src/**/*"] /* Bao gồm thư mục chứa file TypeScript (TS) */
+}
