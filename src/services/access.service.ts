@@ -3,13 +3,14 @@
 import bcrypt from "bcrypt";
 import shopModel from "../models/shop.model";
 import crypt from "crypto";
-
-const RoleShop = {
-  SHOP: "SHOP",
-  WRITER: "WRITER",
-  EDITOR: "EDITOR",
-  ADMIN: "ADMIN",
-};
+import KeyTokenService from "./keyToken.service";
+import { createTokenPair } from "../auth/authUtils";
+import { ROLE_SHOP } from "../constants";
+import {
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+} from "../core/error.response";
 
 class AccessService {
   static signUp = async ({
@@ -21,43 +22,55 @@ class AccessService {
     email: string;
     password: string;
   }) => {
-    try {
-      const shopHolder = await shopModel.findOne({ email }).lean();
-
-      if (shopHolder) {
-        return {
-          code: "xxx",
-          message: "Shop already registered",
-        };
-      }
-
-      const passwordHash = await bcrypt.hash(password, 10);
-      const newShop = await shopModel.create({
-        name,
-        email,
-        password: passwordHash,
-        roles: [RoleShop.SHOP],
-      });
-
-      if (!newShop) {
-        return {
-          code: "xxx",
-          message: "Sign up failed",
-          status: "error",
-        };
-      }
-
-      const { privateKey, publicKey } = crypt.generateKeyPairSync("rsa", {
-        modulusLength: 4096,
-      });
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: (error as Error).message,
-        status: "error",
-      };
+    const shopHolder = await shopModel.findOne({ email }).lean();
+    if (shopHolder) {
+      throw new ConflictError("Shop already registered!");
     }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newShop = await shopModel.create({
+      name,
+      email,
+      password: passwordHash,
+      roles: [ROLE_SHOP.SHOP],
+    });
+
+    if (!newShop) {
+      throw new ConflictError("Create shop failed!");
+    }
+
+    const { privateKey, publicKey } = crypt.generateKeyPairSync("rsa", {
+      modulusLength: 4096,
+      publicKeyEncoding: { type: "pkcs1", format: "pem" },
+      privateKeyEncoding: { type: "pkcs1", format: "pem" },
+    });
+
+    const keyToken = await KeyTokenService.createKeyToken({
+      userId: newShop._id,
+      publicKey,
+    });
+
+    if (!keyToken) {
+      throw new ConflictError("Create key token failed!");
+    }
+
+    const tokens = createTokenPair({
+      payload: { shopID: newShop._id, roles: newShop.roles, email },
+      privateKey,
+    });
+
+    if (!tokens) {
+      throw new ConflictError("Create token failed!");
+    }
+
+    return {
+      code: "SUCCESS",
+      message: "Sign up successfully",
+      shop: newShop,
+      tokens,
+    };
   };
+
   static login = async ({
     email,
     password,
@@ -65,66 +78,33 @@ class AccessService {
     email: string;
     password: string;
   }) => {
-    try {
-      const shopHolder = await shopModel.findOne({ email }).lean();
+    const shopHolder = await shopModel.findOne({ email }).lean();
 
-      if (!shopHolder) {
-        return {
-          code: "xxx",
-          message: "Shop not found",
-          status: "error",
-        };
-      }
-
-      console.log("[P]::login::", shopHolder.email, shopHolder.password);
-
-      if (password !== shopHolder.password) {
-        return {
-          code: "xxx",
-          message: "Password is incorrect",
-          status: "error",
-        };
-      }
-
-      return {
-        code: "xxx",
-        message: "Login successfully",
-        shop: shopHolder,
-        status: "success",
-      };
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: (error as Error).message,
-        status: "error",
-      };
+    if (!shopHolder) {
+      throw new NotFoundError("Shop not found!");
     }
+
+    if (password !== shopHolder.password) {
+      throw new UnauthorizedError("Password is incorrect!");
+    }
+
+    return {
+      message: "Login successfully",
+      shop: shopHolder,
+    };
   };
+
   static getMe = async (shopID: string) => {
-    try {
-      const shopHolder = await shopModel.findOne({ _id: shopID }).lean();
+    const shopHolder = await shopModel.findOne({ _id: shopID }).lean();
 
-      if (!shopHolder) {
-        return {
-          code: "xxx",
-          message: "Shop not found",
-          status: "error",
-        };
-      }
-
-      return {
-        code: "xxx",
-        message: "Get me successfully",
-        shop: shopHolder,
-        status: "success",
-      };
-    } catch (error) {
-      return {
-        code: "xxx",
-        message: (error as Error).message,
-        status: "error",
-      };
+    if (!shopHolder) {
+      throw new NotFoundError("Shop not found!");
     }
+
+    return {
+      message: "Get me successfully",
+      shop: shopHolder,
+    };
   };
 }
 

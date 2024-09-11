@@ -1,11 +1,12 @@
 import dotenv from "dotenv";
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import morgan from "morgan";
 import helmet from "helmet";
 import compression from "compression";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import router from "./routes";
+import { ErrorResponse } from "./core/error.response";
 
 dotenv.config();
 const app = express();
@@ -34,5 +35,14 @@ require("./dbs/init.mongodb");
 app.use("/", router);
 
 // handle errors
+
+app.use(
+  (err: ErrorResponse, req: Request, res: Response, next: NextFunction) => {
+    res.status(err.statusCode || 500).json({
+      code: err.statusCode || 500,
+      message: err.message || "Internal Server Error",
+    });
+  }
+);
 
 export default app;
