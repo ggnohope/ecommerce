@@ -11,11 +11,13 @@ const shopSchema = new Schema(
       type: String,
       trim: true,
       maxLength: 150,
+      required: true,
     },
     email: {
       type: String,
       unique: true,
       trim: true,
+      required: true,
     },
     password: {
       type: String,

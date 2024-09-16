@@ -1,4 +1,5 @@
-import { REASON_STATUS_CODE, STATUS_CODE } from "../constants";
+import { STATUS_CODE } from "../utils/statusCode";
+import { REASON_STATUS_CODE } from "../utils/reasonStatusCode";
 
 export class ErrorResponse extends Error {
   statusCode: number;

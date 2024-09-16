@@ -1,7 +1,11 @@
-import { NextFunction, Request, Response } from "express";
+import JWT from "jsonwebtoken";
+import { NextFunction, Response, Request } from "express";
 import { HEADER } from "../constants";
 import { findById } from "../services/apiKey.service";
 import { CustomRequest } from "../interface";
+import { NotFoundError, UnauthorizedError } from "../core/error.response";
+import KeyTokenService from "../services/keyToken.service";
+import { Types } from "mongoose";
 
 export const apiKey = async (
   req: CustomRequest,
@@ -41,8 +45,30 @@ export const permission = (permission: string) => {
   };
 };
 
-export const asyncHandler = (fn: any) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
+export const authentication = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.headers[HEADER.CLIENT_ID];
+  if (!userId) throw new UnauthorizedError("Invalid request!");
+
+  const keyStore = await KeyTokenService.findKeyTokenByUserId(
+    new Types.ObjectId(userId as string)
+  );
+  if (!keyStore) throw new NotFoundError("Not found key!");
+
+  const accessToken = req.headers[HEADER.AUTHORIZATION];
+  if (!accessToken || Array.isArray(accessToken))
+    throw new UnauthorizedError("Invalid request!");
+
+  const decodeUser = JWT.verify(
+    accessToken,
+    keyStore.publicKey
+  ) as JWT.JwtPayload;
+  if (userId !== decodeUser.shopID)
+    throw new UnauthorizedError("Invalid userId!");
+
+  req.keyStore = keyStore;
+  return next();
 };

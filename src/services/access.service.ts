@@ -1,8 +1,5 @@
-"use strict";
-
 import bcrypt from "bcrypt";
 import shopModel from "../models/shop.model";
-import crypt from "crypto";
 import KeyTokenService from "./keyToken.service";
 import { createTokenPair } from "../auth/authUtils";
 import { ROLE_SHOP } from "../constants";
@@ -11,6 +8,7 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from "../core/error.response";
+import { generatePairKey } from "../utils";
 
 class AccessService {
   static signUp = async ({
@@ -39,20 +37,10 @@ class AccessService {
       throw new ConflictError("Create shop failed!");
     }
 
-    const { privateKey, publicKey } = crypt.generateKeyPairSync("rsa", {
+    const { privateKey, publicKey } = generatePairKey({
       modulusLength: 4096,
-      publicKeyEncoding: { type: "pkcs1", format: "pem" },
-      privateKeyEncoding: { type: "pkcs1", format: "pem" },
+      algo: "rsa",
     });
-
-    const keyToken = await KeyTokenService.createKeyToken({
-      userId: newShop._id,
-      publicKey,
-    });
-
-    if (!keyToken) {
-      throw new ConflictError("Create key token failed!");
-    }
 
     const tokens = createTokenPair({
       payload: { shopID: newShop._id, roles: newShop.roles, email },
@@ -60,12 +48,21 @@ class AccessService {
     });
 
     if (!tokens) {
-      throw new ConflictError("Create token failed!");
+      throw new ConflictError("Create tokens failed!");
+    }
+
+    const keyToken = await KeyTokenService.createKeyToken({
+      userId: newShop._id,
+      publicKey,
+      privateKey,
+      refreshToken: tokens.refreshToken,
+    });
+
+    if (!keyToken) {
+      throw new ConflictError("Create key token failed!");
     }
 
     return {
-      code: "SUCCESS",
-      message: "Sign up successfully",
       shop: newShop,
       tokens,
     };
@@ -84,14 +81,45 @@ class AccessService {
       throw new NotFoundError("Shop not found!");
     }
 
-    if (password !== shopHolder.password) {
+    if (!bcrypt.compareSync(password, shopHolder.password)) {
       throw new UnauthorizedError("Password is incorrect!");
     }
 
+    const { privateKey, publicKey } = generatePairKey({
+      modulusLength: 4096,
+      algo: "rsa",
+    });
+
+    const tokens = createTokenPair({
+      payload: { shopID: shopHolder._id, roles: shopHolder.roles, email },
+      privateKey,
+    });
+
+    if (!tokens) {
+      throw new ConflictError("Create tokens failed!");
+    }
+
+    const keyToken = await KeyTokenService.updateKeyToken({
+      userId: shopHolder._id,
+      publicKey,
+      privateKey,
+      refreshToken: tokens.refreshToken,
+    });
+
+    if (!keyToken) {
+      throw new ConflictError("Create key token failed!");
+    }
+
     return {
-      message: "Login successfully",
       shop: shopHolder,
+      tokens,
     };
+  };
+
+  static logout = async ({ keyStore }: any) => {
+    const deleteKey = await KeyTokenService.deleteKeyToken(keyStore._id);
+
+    return deleteKey;
   };
 
   static getMe = async (shopID: string) => {

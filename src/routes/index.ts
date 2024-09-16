@@ -6,15 +6,15 @@ import accessRouter from "./access";
 import { apiKey, permission } from "../auth/checkAuth";
 import { CustomRequest } from "../interface";
 
-// check apiKey
+// // check apiKey
 
-router.use((req, res, next) => apiKey(req as CustomRequest, res, next));
+// router.use((req, res, next) => apiKey(req as CustomRequest, res, next));
 
-// check permissions
+// // check permissions
 
-router.use((req, res, next) =>
-  permission("READ")(req as CustomRequest, res, next)
-);
+// router.use((req, res, next) =>
+//   permission("READ")(req as CustomRequest, res, next)
+// );
 
 router.use("/v1/api", accessRouter);
 
