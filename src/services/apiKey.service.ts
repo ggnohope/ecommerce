@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import apiKeyModel from "../models/apiKey.model";
 
 export const findById = async (key: string) => {

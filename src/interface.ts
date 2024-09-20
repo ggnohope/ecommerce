@@ -1,6 +1,6 @@
 import { Request } from "express";
 import { Document } from "mongoose";
-import keyTokenModel from "./models/keyToken.model";
+import keyTokenModel from "./models/refreshToken.model";
 
 export interface CustomRequest extends Request {
   objKey: {
@@ -8,5 +8,5 @@ export interface CustomRequest extends Request {
     status: boolean;
     permissions: string[];
   };
-  keyStore: any;
+  user: any;
 }

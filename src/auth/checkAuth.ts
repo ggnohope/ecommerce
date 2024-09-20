@@ -1,11 +1,10 @@
 import JWT from "jsonwebtoken";
-import { NextFunction, Response, Request } from "express";
+import { NextFunction, Response } from "express";
 import { HEADER } from "../constants";
 import { findById } from "../services/apiKey.service";
 import { CustomRequest } from "../interface";
-import { NotFoundError, UnauthorizedError } from "../core/error.response";
-import KeyTokenService from "../services/keyToken.service";
-import { Types } from "mongoose";
+import { UnauthorizedError } from "../core/error.response";
+import blacklistTokenModel from "../models/backlistToken.model";
 
 export const apiKey = async (
   req: CustomRequest,
@@ -50,25 +49,35 @@ export const authentication = async (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.headers[HEADER.CLIENT_ID];
-  if (!userId) throw new UnauthorizedError("Invalid request!");
+  // Extract Authorization header and access token
+  const authorizationHeader = req.headers[HEADER.AUTHORIZATION];
+  const accessToken =
+    typeof authorizationHeader === "string"
+      ? authorizationHeader.split(" ")[1]
+      : undefined;
 
-  const keyStore = await KeyTokenService.findKeyTokenByUserId(
-    new Types.ObjectId(userId as string)
-  );
-  if (!keyStore) throw new NotFoundError("Not found key!");
+  if (!accessToken) {
+    throw new UnauthorizedError("Missing AccessToken!");
+  }
 
-  const accessToken = req.headers[HEADER.AUTHORIZATION];
-  if (!accessToken || Array.isArray(accessToken))
-    throw new UnauthorizedError("Invalid request!");
+  // Check if the token is blacklisted
+  const blacklistedToken = await blacklistTokenModel.findOne({
+    token: accessToken,
+  });
 
-  const decodeUser = JWT.verify(
+  if (blacklistedToken) {
+    throw new UnauthorizedError("AccessToken has been blacklisted.");
+  }
+
+  // Verify the access token and extract the payload
+  JWT.verify(
     accessToken,
-    keyStore.publicKey
-  ) as JWT.JwtPayload;
-  if (userId !== decodeUser.shopID)
-    throw new UnauthorizedError("Invalid userId!");
+    process.env.JWT_ACCESS_SECRET as string,
+    (err, user) => {
+      if (err) throw new UnauthorizedError(err.message);
 
-  req.keyStore = keyStore;
-  return next();
+      req.user = user;
+      next();
+    }
+  );
 };
