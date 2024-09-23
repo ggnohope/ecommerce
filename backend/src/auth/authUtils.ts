@@ -10,11 +10,11 @@ export const createTokenPair = ({
   refreshKey: Secret;
 }) => {
   const accessToken = JWT.sign(payload, accessKey, {
-    expiresIn: "5s",
+    expiresIn: process.env.JWT_ACCESS_EXPIRED,
   });
 
   const refreshToken = JWT.sign(payload, refreshKey, {
-    expiresIn: "15m",
+    expiresIn: process.env.JWT_REFRESH_EXPIRED,
   });
 
   return {
@@ -31,7 +31,7 @@ export const createAccessToken = ({
   accessKey: Secret;
 }) => {
   const accessToken = JWT.sign(payload, accessKey, {
-    expiresIn: "5s",
+    expiresIn: process.env.JWT_ACCESS_EXPIRED,
   });
 
   return { accessToken };
@@ -45,7 +45,7 @@ export const createRefreshToken = ({
   refreshKey: Secret;
 }) => {
   const refreshToken = JWT.sign(payload, refreshKey, {
-    expiresIn: "15m",
+    expiresIn: process.env.JWT_REFRESH_EXPIRED,
   });
 
   return { refreshToken };

@@ -6,18 +6,18 @@ import { authentication } from "../../auth/checkAuth";
 const accessRouter = express.Router();
 
 accessRouter.post(
-  "/auth/refresh-token",
+  "/refresh-token",
   asyncHandler(AccessController.refreshToken)
 );
 
-accessRouter.post("/auth/signup", asyncHandler(AccessController.signUp));
+accessRouter.post("/signup", asyncHandler(AccessController.signUp));
 
-accessRouter.post("/auth/login", asyncHandler(AccessController.login));
+accessRouter.post("/login", asyncHandler(AccessController.login));
 
 accessRouter.use(asyncHandler(authentication));
 
-accessRouter.post("/auth/logout", asyncHandler(AccessController.logout));
+accessRouter.post("/logout", asyncHandler(AccessController.logout));
 
-accessRouter.get("/auth/me", asyncHandler(AccessController.getMe));
+accessRouter.get("/me", asyncHandler(AccessController.getMe));
 
 export default accessRouter;

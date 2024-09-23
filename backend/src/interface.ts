@@ -10,3 +10,14 @@ export interface CustomRequest extends Request {
   };
   user: any;
 }
+
+export interface ProductInterface {
+  name: string;
+  price: number;
+  category: string;
+  quantity: number;
+  shop: string;
+  images: string[];
+  description: string;
+  attributes: object;
+}
